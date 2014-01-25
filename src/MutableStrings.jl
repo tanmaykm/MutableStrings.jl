@@ -2,7 +2,7 @@ module MutableStrings
 
 import Base.convert, Base.promote, Base.endof, Base.getindex, Base.sizeof, Base.search, Base.rsearch, Base.string, Base.print, Base.write, Base.map!, Base.reverse!, Base.matchall
 
-export MutableASCIIString, MutableString, uppercase!, lowercase!, replace!, map!, ucfirst!, lcfirst!, reverse!, matchall
+export MutableASCIIString, MutableString, uppercase!, lowercase!, replace!, map!, ucfirst!, lcfirst!, reverse!, matchall, search, rsearch
 export convert, promote
 
 type MutableASCIIString <: DirectIndexString
@@ -25,6 +25,47 @@ getindex(s::MutableASCIIString, r::Range1{Int}) = ASCIIString(getindex(s.data,r)
 getindex(s::MutableASCIIString, indx::AbstractVector{Int}) = ASCIIString(s.data[indx])
 search(s::MutableASCIIString, c::Char, i::Integer) = c < 0x80 ? search(s.data,uint8(c),i) : 0
 rsearch(s::MutableASCIIString, c::Char, i::Integer) = c < 0x80 ? rsearch(s.data,uint8(c),i) : 0
+
+# won't be required if MutableASCIIString is made part of ByteString
+#const ovec = Array(Int32, 30)
+search(str::MutableASCIIString, re::Regex) = search(str, re, 1)
+function search(str::MutableASCIIString, re::Regex, idx::Integer)
+    if idx > nextind(str,endof(str))
+        throw(BoundsError())
+    end
+    opts = re.options & Base.PCRE.EXECUTE_MASK
+    Base.compile(re)
+    m, n = mexec(re.regex, re.extra, str, idx-1, opts, true)
+    #m = ovec
+    isempty(m) ? (0:-1) : ((m[1]+1):prevind(str,m[2]+1))
+end
+
+# won't be required if MutableASCIIString is made part of ByteString
+mexec(regex::Ptr{Void}, extra::Ptr{Void}, str::MutableASCIIString, offset::Integer, options::Integer, cap::Bool) =
+    mexec(regex, extra, str, 0, offset, sizeof(str), options, cap)
+
+function mexec(regex::Ptr{Void}, extra::Ptr{Void},
+              str::MutableASCIIString, shift::Integer, offset::Integer, len::Integer, options::Integer, cap::Bool)
+    if offset < 0 || len < offset || len+shift > sizeof(str)
+        error(BoundsError)
+    end
+    ncap = Base.PCRE.info(regex, extra, Base.PCRE.INFO_CAPTURECOUNT, Int32)
+    #println("ncap = $ncap")
+    ovec = Array(Int32, 3(ncap+1))
+    n = ccall((:pcre_exec, :libpcre), Int32,
+              (Ptr{Void}, Ptr{Void}, Ptr{Uint8}, Int32,
+               Int32, Int32, Ptr{Int32}, Int32),
+              regex, extra, pointer(str.data,shift+1), len,
+              offset, options, ovec, length(ovec))
+              #offset, options, ovec, 3(ncap+1))
+    if n < -1
+        error("error $n")
+    end
+    cap ? ((n > -1 ? ovec[1:2(ncap+1)] : Array(Int32,0)), ncap) : n > -1
+    #cap ? ncap : (n > -1)
+end
+
+
 
 function string(c::MutableASCIIString...)
     n = 0
@@ -82,10 +123,16 @@ write(io::IO, s::MutableASCIIString) = write(io, s.data)
 function replace!(str::MutableASCIIString, pattern, repl::Function, limit::Integer=0) 
     n = 1
     e = endof(str)
+    #println("end: $e")
+    #astr = convert(UTF8String, str)
+    #r = search(astr,pattern,1)
     r = search(str,pattern,1)
     j, k = first(r), last(r)
     while j != 0
+        #println("j: $j, k: $k")
         repl(str.data, r)
+        #r = search(astr, pattern, k+1)
+        ((k+1) > e) && break
         r = search(str, pattern, k+1)
         j, k = first(r), last(r)
         n == limit && break
@@ -100,7 +147,7 @@ function map!(f, s::MutableASCIIString)
     end
 end
 
-matchall(re::Regex, str::MutableASCIIString, overlap::Bool=false) = matchall(re, convert(ASCIIString, str), overlap)
+matchall(re::Regex, str::MutableASCIIString, overlap::Bool=false) = matchall(re, convert(UTF8String, str), overlap)
 
 convert(::Type{UTF8String}, s::MutableUTF8String) = UTF8String(s.data)
 convert(::Type{UTF8String}, s::MutableASCIIString) = UTF8String(s.data)
