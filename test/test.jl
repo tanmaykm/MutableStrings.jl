@@ -22,6 +22,7 @@ function warmup()
     ucfirst!(_mstr);
     lcfirst!(_mstr);
     replace!(_mstr, "abc", mk_blank);
+    replace!(_mstr, r"bcd", mk_blank);
     rx = r"c[a-z]+\s"
     search(_mstr, rx)
     search(_mstr, "abc")
@@ -45,7 +46,7 @@ function test()
 
     gc(); _ret, t, b = @timed str = replace(str, "ab", "  ");
     gc(); _mret, mt, mb = @timed replace!(mstr, "ab", mk_blank);
-    @printf("%20s%20s%20s%20s%20s\n", "replace", "$t", "$b", "$mt", "$mb")
+    @printf("%20s%20s%20s%20s%20s\n", "replace string", "$t", "$b", "$mt", "$mb")
 
     rx = r"c[a-z]+\s"
     gc(); _ret, t, b = @timed matchall(rx, str);
@@ -78,7 +79,7 @@ function test()
 
     gc(); _ret, t, b = @timed replace(str, rx, "")
     gc(); _mret, mt, mb = @timed replace!(mstr, rx, mk_blank)
-    @printf("%20s%20s%20s%20s%20s\n", "replace", "$t", "$b", "$mt", "$mb")
+    @printf("%20s%20s%20s%20s%20s\n", "replace regex", "$t", "$b", "$mt", "$mb")
 end
 
 warmup()

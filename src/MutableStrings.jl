@@ -2,7 +2,7 @@ module MutableStrings
 
 import Base.convert, Base.promote, Base.endof, Base.getindex, Base.sizeof, Base.search, Base.rsearch, Base.string, Base.print, Base.write, Base.map!, Base.reverse!, Base.matchall
 
-export MutableASCIIString, MutableString, uppercase!, lowercase!, replace!, map!, ucfirst!, lcfirst!, reverse!, matchall, search, rsearch
+export MutableASCIIString, MutableString, uppercase!, lowercase!, replace!, replaceall!, map!, ucfirst!, lcfirst!, reverse!, matchall, search, rsearch
 export convert, promote
 
 type MutableASCIIString <: DirectIndexString
@@ -120,7 +120,7 @@ end
 print(io::IO, s::MutableASCIIString) = (write(io, s);nothing)
 write(io::IO, s::MutableASCIIString) = write(io, s.data)
 
-function replace!(str::MutableASCIIString, pattern, repl::Function, limit::Integer=0) 
+function replace!{T}(str::MutableASCIIString, pattern::T, repl::Function, limit::Integer=0) 
     n = 1
     e = endof(str)
     #println("end: $e")
@@ -148,6 +148,52 @@ function map!(f, s::MutableASCIIString)
 end
 
 matchall(re::Regex, str::MutableASCIIString, overlap::Bool=false) = matchall(re, convert(UTF8String, str), overlap)
+
+function replace!(str::MutableASCIIString, re::Regex, repl::Function, limit::Integer=0) 
+    regex = Base.compile(re).regex
+    extra = re.extra
+    n = length(str.data)
+    #matches = SubString{UTF8String}[]
+    offset = int32(0)
+    opts = re.options & Base.PCRE.EXECUTE_MASK
+    opts_nonempty = opts | Base.PCRE.ANCHORED | Base.PCRE.NOTEMPTY_ATSTART
+    prevempty = false
+    ovec = Array(Int32, 3)
+    n_repl = 1
+    while true
+        result = ccall((:pcre_exec, :libpcre), Int32,
+                       (Ptr{Void}, Ptr{Void}, Ptr{Uint8}, Int32,
+                       Int32, Int32, Ptr{Int32}, Int32),
+                       regex, extra, str.data, n,
+                       offset, prevempty ? opts_nonempty : opts, ovec, 3)
+
+        if result < 0
+            if prevempty && offset < n
+                offset = int32(nextind(str, offset + 1) - 1)
+                prevempty = false
+                continue
+            else
+                break
+            end
+        end
+
+        #push!(matches, SubString(str, ovec[1]+1, ovec[2]))
+        #str.data[ovec[1]+1, ovec[2]] = replace_char
+        repl(str.data, (ovec[1]+1):ovec[2])
+        prevempty = offset == ovec[2]
+        #if overlap
+        #    if !prevempty
+        #        offset = int32(nextind(str, offset + 1) - 1)
+        #    end
+        #else
+        offset = ovec[2]
+        #end
+        n_repl == limit && break
+        n_repl += 1
+    end
+    nothing
+end
+
 
 convert(::Type{UTF8String}, s::MutableUTF8String) = UTF8String(s.data)
 convert(::Type{UTF8String}, s::MutableASCIIString) = UTF8String(s.data)
