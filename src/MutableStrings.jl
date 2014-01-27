@@ -1,9 +1,9 @@
 module MutableStrings
 
-import Base.convert, Base.promote, Base.endof, Base.getindex, Base.sizeof, Base.search, Base.rsearch, Base.string, Base.print, Base.write, Base.map!, Base.reverse!, Base.matchall
+import Base.convert, Base.promote_rule, Base.endof, Base.getindex, Base.sizeof, Base.search, Base.rsearch, Base.string, Base.print, Base.write, Base.map!, Base.reverse!, Base.matchall
 
 export MutableASCIIString, MutableString, uppercase!, lowercase!, replace!, replaceall!, map!, ucfirst!, lcfirst!, reverse!, matchall, search, rsearch
-export convert, promote
+export convert, promote_rule
 
 type MutableASCIIString <: DirectIndexString
     data::Array{Uint8,1}
