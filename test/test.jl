@@ -29,7 +29,30 @@ function warmup()
     matchall(rx, _mstr)
 end
 
-function test()
+function test_set_get()
+    ms = MutableASCIIString("Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.")
+    @assert ms[1] == 'L'
+    @assert ms[1:10] == "Lorem ipsu"
+    @assert ms[2:10] == "orem ipsu"
+    @assert typeof(ms[1:10]) == ASCIIString
+    ms[1] = 'X'
+    @assert ms[1:10] == "Xorem ipsu"
+    ms[1:10] = 'X'
+    @assert ms[1:10] == "X"^10
+    ms[1:10] = "Lorem ipsu"
+    @assert ms[1:10] == "Lorem ipsu"
+
+    replace!(ms, "Lorem", "O RUM")
+    @assert ms[1:5] == "O RUM"
+    replace!(ms, r"O RUM", "Lorem")
+    @assert ms[1:10] == "Lorem ipsu"
+
+    s = replace(ms, "Lorem", "O RUM")
+    @assert ms[1:5] != "O RUM"
+    @assert beginswith(s, "O RUM")
+end
+
+function test_time()
     str = makestr();
     mstr = MutableASCIIString(str);
     @printf("%20s%30s%40s\n", "", "string", "mutable string")
@@ -81,5 +104,6 @@ function test()
 end
 
 warmup()
-test()
+test_set_get()
+test_time()
 
