@@ -27,12 +27,13 @@ function warmup()
     remove_case!(StringDocument("ssdfsdfdsf"));
     TextAnalysis.remove_patterns!(StringDocument("ssdfsdfdsf"), r"abc");
     TextAnalysis.remove_patterns!(StringDocument(MutableASCIIString("ssdfsdfdsf")), r"abc");
+    TextAnalysis.stem!(StringDocument("ssdfsdfdsf"));
+    TextAnalysis.stem!(StringDocument(MutableASCIIString("ssdfsdfdsf")));
 end
 
 function test()
     str = makestr();
     mstr = MutableASCIIString(copy(str.data));
-    println("strlen: $(length(str))")
 
     strdoc = StringDocument(str);
     mstrdoc = StringDocument(mstr);
@@ -57,6 +58,15 @@ function test()
     gc(); _ret, t, b = @timed TextAnalysis.remove_patterns!(strdoc, rx)
     gc(); _mret, mt, mb = @timed TextAnalysis.remove_patterns!(mstrdoc, rx)
     @printf("%20s%20s%20s%20s%20s\n", "remove_patterns!", "$t", "$b", "$mt", "$mb")
+
+    stm = Stemmer("english")
+    str = "running skipping " ^ 10^5
+    mstr = MutableASCIIString(copy(str.data))
+    strdoc = StringDocument(str)
+    mstrdoc = StringDocument(mstr)
+    gc(); _ret, t, b = @timed TextAnalysis.stem!(stm, strdoc)
+    gc(); _mret, mt, mb = @timed TextAnalysis.stem!(stm, mstrdoc)
+    @printf("%20s%20s%20s%20s%20s\n", "stem!", "$t", "$b", "$mt", "$mb")
 end
 
 warmup()

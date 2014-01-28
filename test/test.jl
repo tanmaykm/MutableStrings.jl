@@ -11,7 +11,7 @@ function makestr()
     takebuf_string(iob)
 end
 
-mk_blank(x::Array{Uint8,1}, y::Range1{Int64}) = (x[y] = uint8(' '))
+mk_blank(x::MutableASCIIString, y::Range1{Int64}) = (x.data[y] = uint8(' '))
 
 function warmup()
     _mstr = MutableASCIIString(copy("asdsdsf".data))
@@ -31,7 +31,7 @@ end
 
 function test()
     str = makestr();
-    mstr = MutableASCIIString(copy(str.data));
+    mstr = MutableASCIIString(str);
     @printf("%20s%30s%40s\n", "", "string", "mutable string")
     @printf("%20s%30s%40s\n", "length", "$(length(str))", "$(length(mstr))")
     @printf("%20s%20s%20s%20s%20s\n", "", "time", "bytes", "time", "bytes")
@@ -53,28 +53,26 @@ function test()
     gc(); _mret, mt, mb = @timed matchall(rx, mstr);
     @printf("%20s%20s%20s%20s%20s\n", "matchall", "$t", "$b", "$mt", "$mb")
 
+    _ret = _mret = 0
     gc(); _ret, t, b = @timed begin
         pos = 1
-        #fc = 0
         while pos <= length(str)
             res = search(str, rx, pos)
             (res.start == 0) && break
             pos = res.start + length(res)
-            #fc += 1
+            _ret += 1
         end
-        #println("found $fc matches")
     end
     gc(); _mret, mt, mb = @timed begin
         pos = 1
-        #fc = 0
         while pos <= length(mstr)
             res = search(mstr, rx, pos)
             (res.start == 0) && break
             pos = res.start + length(res)
-            #fc += 1
+            _mret += 1
         end
-        #println("found $fc matches")
     end
+    @assert _ret == _mret
     @printf("%20s%20s%20s%20s%20s\n", "search", "$t", "$b", "$mt", "$mb")
 
     gc(); _ret, t, b = @timed replace(str, rx, "")
