@@ -1,17 +1,20 @@
 using MutableStrings
 
-const nstr = 10^7
+const nstr = 10^5
 const lstr = 6
 
 function makestr()
     iob = IOBuffer()
     for idx in 1:nstr
         write(iob, randstring(lstr))
+        write(iob, ' ')
     end
     takebuf_string(iob)
 end
 
-mk_blank(x::MutableASCIIString, y::Range1{Int64}) = (x.data[y] = uint8(' '))
+#mk_blank(x::MutableASCIIString, y::Range1{Int64}) = (x.data[y] = uint8(' '))
+mk_blank(x) = ""
+mk_space(x) = " "
 
 function warmup()
     _mstr = MutableASCIIString(copy("asdsdsf".data))
@@ -53,37 +56,53 @@ function test_set_get()
 end
 
 function test_time()
-    str = makestr();
+    master_str = makestr();
+
+    str = master_str;
     mstr = MutableASCIIString(str);
-    @printf("%20s%30s%40s\n", "", "string", "mutable string")
-    @printf("%20s%30s%40s\n", "length", "$(length(str))", "$(length(mstr))")
-    @printf("%20s%20s%20s%20s%20s\n", "", "time", "bytes", "time", "bytes")
+    @printf("%25s%30s%40s\n", "", "string", "mutable string")
+    @printf("%25s%30s%40s\n", "length", "$(length(str))", "$(length(mstr))")
+    @printf("%25s%20s%20s%20s%20s\n", "", "time", "bytes", "time", "bytes")
 
     gc(); _ret, t, b = @timed str = lowercase(str);
     gc(); _mret, mt, mb = @timed lowercase!(mstr);
-    @printf("%20s%20s%20s%20s%20s\n", "lowercase", "$t", "$b", "$mt", "$mb")
+    @printf("%25s%20s%20s%20s%20s\n", "lowercase", "$t", "$b", "$mt", "$mb")
 
     gc(); _ret, t, b = @timed str = reverse(str);
     gc(); _mret, mt, mb = @timed reverse!(mstr);
-    @printf("%20s%20s%20s%20s%20s\n", "reverse", "$t", "$b", "$mt", "$mb")
+    @printf("%25s%20s%20s%20s%20s\n", "reverse", "$t", "$b", "$mt", "$mb")
 
-    gc(); _ret, t, b = @timed str = replace(str, "ab", "  ");
-    gc(); _mret, mt, mb = @timed replace!(mstr, "ab", mk_blank);
-    @printf("%20s%20s%20s%20s%20s\n", "replace string", "$t", "$b", "$mt", "$mb")
+    gc(); _ret, t, b = @timed str = replace(str, "ba", "  ");
+    gc(); _mret, mt, mb = @timed replace!(mstr, "ba", "  ");
+    @printf("%25s%20s%20s%20s%20s\n", "repl spaces", "$t", "$b", "$mt", "$mb")
+
+    gc(); _ret, t, b = @timed str = replace(str, "cd", "c");
+    gc(); _mret, mt, mb = @timed replace!(mstr, "cd", "c");
+    @printf("%25s%20s%20s%20s%20s\n", "repl str", "$t", "$b", "$mt", "$mb")
+
+    gc(); _ret, t, b = @timed str = replace(str, "cd", 'c');
+    gc(); _mret, mt, mb = @timed replace!(mstr, "cd", 'c');
+    @printf("%25s%20s%20s%20s%20s\n", "repl char", "$t", "$b", "$mt", "$mb")
+
+    gc(); _ret, t, b = @timed str = replace(str, "ab", "");
+    gc(); _mret, mt, mb = @timed replace!(mstr, "ab", "");
+    @printf("%25s%20s%20s%20s%20s\n", "repl nothing", "$t", "$b", "$mt", "$mb")
 
     rx = r"c[a-z]+\s"
     gc(); _ret, t, b = @timed matchall(rx, str);
     gc(); _mret, mt, mb = @timed matchall(rx, mstr);
-    @printf("%20s%20s%20s%20s%20s\n", "matchall", "$t", "$b", "$mt", "$mb")
+    @printf("%25s%20s%20s%20s%20s\n", "matchall", "$t", "$b", "$mt", "$mb")
 
-    _ret = _mret = 0
+    str = lowercase(master_str);
+    mstr = MutableASCIIString(str);
+    _cret = _cmret = 0
     gc(); _ret, t, b = @timed begin
         pos = 1
         while pos <= length(str)
             res = search(str, rx, pos)
             (res.start == 0) && break
             pos = res.start + length(res)
-            _ret += 1
+            _cret += 1
         end
     end
     gc(); _mret, mt, mb = @timed begin
@@ -92,15 +111,47 @@ function test_time()
             res = search(mstr, rx, pos)
             (res.start == 0) && break
             pos = res.start + length(res)
-            _mret += 1
+            _cmret += 1
         end
     end
-    @assert _ret == _mret
-    @printf("%20s%20s%20s%20s%20s\n", "search", "$t", "$b", "$mt", "$mb")
+    @assert _cret == _cmret
+    @printf("%25s%20s%20s%20s%20s\n", "searched $(_cret) times", "$t", "$b", "$mt", "$mb")
 
     gc(); _ret, t, b = @timed replace(str, rx, "")
     gc(); _mret, mt, mb = @timed replace!(mstr, rx, mk_blank)
-    @printf("%20s%20s%20s%20s%20s\n", "replace regex", "$t", "$b", "$mt", "$mb")
+    @printf("%25s%20s%20s%20s%20s\n", "repl regex nothing fn", "$t", "$b", "$mt", "$mb")
+
+    rx = Regex(str[1:1] * "[a-z]+\\s")
+    gc(); _ret, t, b = @timed replace(str, rx, " ")
+    gc(); _mret, mt, mb = @timed replace!(mstr, rx, mk_space)
+    @printf("%25s%20s%20s%20s%20s\n", "repl regex space fn", "$t", "$b", "$mt", "$mb")
+
+    str = lowercase(master_str);
+    mstr = MutableASCIIString(str);
+    l1 = length(mstr)
+    rx = Regex(str[1:1] * "[a-z]+\\s")
+    gc(); _ret, t, b = @timed replace(str, rx, "")
+    gc(); _mret, mt, mb = @timed replace!(mstr, rx, "")
+    @assert length(mstr) < l1
+    @printf("%25s%20s%20s%20s%20s\n", "repl regex nothing", "$t", "$b", "$mt", "$mb")
+
+    str = lowercase(master_str);
+    mstr = MutableASCIIString(str);
+    l1 = length(mstr)
+    rx = Regex(str[1:1] * "[a-z]+\\s")
+    gc(); _ret, t, b = @timed replace(str, rx, " ")
+    gc(); _mret, mt, mb = @timed replace!(mstr, rx, " ")
+    @assert length(mstr) < l1
+    @printf("%25s%20s%20s%20s%20s\n", "repl regex space", "$t", "$b", "$mt", "$mb")
+
+    str = lowercase(master_str);
+    mstr = MutableASCIIString(str);
+    l1 = length(mstr)
+    rx = Regex(str[1:1] * "[a-z]+\\s")
+    gc(); _ret, t, b = @timed replace(str, rx, ' ')
+    gc(); _mret, mt, mb = @timed replace!(mstr, rx, ' ')
+    @assert length(mstr) == l1
+    @printf("%25s%20s%20s%20s%20s\n", "repl regex char", "$t", "$b", "$mt", "$mb")
 end
 
 warmup()

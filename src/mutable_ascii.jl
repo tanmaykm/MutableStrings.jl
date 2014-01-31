@@ -7,7 +7,7 @@ getindex(s::MutableASCIIString, indx::AbstractVector{Int}) = ASCIIString(s.data[
 
 setindex!(s::MutableASCIIString, x, i0::Real) = (s.data[i0] = x)
 setindex!(s::MutableASCIIString, r::ASCIIString, I::Range1) = (s.data[I] = r.data)
-setindex!(s::MutableASCIIString, c::Char, I::Range1) = (s.data[I] = c)
+setindex!(s::MutableASCIIString, c::Char, I::Range1) = (s.data[I] = uint8(c))
 
 search(s::MutableASCIIString, c::Char, i::Integer) = c < 0x80 ? search(s.data,uint8(c),i) : 0
 rsearch(s::MutableASCIIString, c::Char, i::Integer) = c < 0x80 ? rsearch(s.data,uint8(c),i) : 0
@@ -43,6 +43,7 @@ function exec(regex::Ptr{Void}, extra::Ptr{Void}, str::MutableASCIIString, shift
 end
 
 
+string(c::MutableASCIIString) = c
 function string(c::MutableASCIIString...)
     n = 0
     for s in c
@@ -95,17 +96,60 @@ reverse!(s::MutableASCIIString) = reverse!(s.data)
 print(io::IO, s::MutableASCIIString) = (write(io, s);nothing)
 write(io::IO, s::MutableASCIIString) = write(io, s.data)
 
-replace!(s::MutableASCIIString, pat, r, n::Integer) = replace!(s, pat, (s,w)->(s[w]=r), n)
+function _splice!{T<:Integer}(a::Vector, r::Range1{T}, ins::AbstractArray=Base._default_splice)
+    m = length(ins)
+    if m == 0
+        deleteat!(a, r)
+        return
+    end
+
+    n = length(a)
+    f = first(r)
+    l = last(r)
+    d = length(r)
+
+    if m < d
+        delta = d - m
+        if f-1 < n-l
+            Base._deleteat_beg!(a, f, delta)
+        else
+            Base._deleteat_end!(a, l-delta+1, delta)
+        end
+    elseif m > d
+        delta = m - d
+        if f-1 < n-l
+            Base._growat_beg!(a, f, delta)
+        else
+            Base._growat_end!(a, l+1, delta)
+        end
+    end
+
+    for k = 1:m
+        a[f+k-1] = ins[k]
+    end
+end
+
 replace!(s::MutableASCIIString, pat, r) = replace!(s, pat, r, 0)
 
-function replace!{T}(str::MutableASCIIString, pattern::T, repl::Function, limit::Integer=0) 
+function replace!{T}(str::MutableASCIIString, pattern::T, repl::Union(Function,ASCIIString,Char), limit::Integer=0) 
     n = 1
-    e = endof(str)
+    es = endof(str)
     r = search(str,pattern,1)
     j, k = first(r), last(r)
     while j != 0
-        repl(str, r)
-        ((k+1) > e) && break
+        rv::Union(ASCIIString,Char) = isa(repl, Function) ? repl(SubString(str, j, k)) : repl
+        if isa(rv, ASCIIString)
+            _splice!(str.data, r, rv.data)
+            lrv = length(rv)
+            lr = length(r)
+            if lrv != lr
+                k = j+lrv
+                es = es - lr + lrv
+            end
+        else
+            str[r] = rv
+        end
+        ((k+1) > es) && break
         r = search(str, pattern, k+1)
         j, k = first(r), last(r)
         n == limit && break
@@ -113,7 +157,7 @@ function replace!{T}(str::MutableASCIIString, pattern::T, repl::Function, limit:
     end
 end
 
-function replace!(str::MutableASCIIString, re::Regex, repl::Function, limit::Integer=0) 
+function replace!(str::MutableASCIIString, re::Regex, repl::Union(Function,ASCIIString,Char), limit::Integer=0) 
     regex = Base.compile(re).regex
     extra = re.extra
     n = length(str.data)
@@ -140,9 +184,24 @@ function replace!(str::MutableASCIIString, re::Regex, repl::Function, limit::Int
             end
         end
 
-        repl(str, (ovec[1]+1):ovec[2])
-        prevempty = offset == ovec[2]
-        offset = ovec[2]
+        rv::Union(ASCIIString,Char) = isa(repl, Function) ? repl(SubString(str, ovec[1]+1, ovec[2])) : repl
+        r = (ovec[1]+1):(ovec[2])
+        if isa(rv, ASCIIString)
+            _splice!(str.data, r, rv.data)
+            
+            lrv = length(rv)
+            lr = length(r)
+            if lrv != lr
+                n = n - lr + lrv
+            end
+
+            prevempty = offset == ovec[2]
+            offset = ovec[1]+1+lrv
+        else
+            str[r] = rv
+            prevempty = offset == ovec[2]
+            offset = ovec[2]
+        end
         n_repl == limit && break
         n_repl += 1
     end

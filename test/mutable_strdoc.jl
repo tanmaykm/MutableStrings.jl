@@ -13,8 +13,6 @@ function makestr()
     takebuf_string(iob)
 end
 
-mk_blank(x::Array{Uint8,1}, y::Range1) = (x[y] = uint8(' '))
-
 function warmup()
     _mstr = MutableASCIIString("asdsdsf");
     l = length(_mstr)
@@ -23,7 +21,7 @@ function warmup()
     reverse!(_mstr);
     ucfirst!(_mstr);
     lcfirst!(_mstr);
-    replace!(_mstr, "abc", mk_blank);
+    replace!(_mstr, "abc", ' ');
     remove_case!(StringDocument("ssdfsdfdsf"));
     TextAnalysis.remove_patterns!(StringDocument("ssdfsdfdsf"), r"abc");
     TextAnalysis.remove_patterns!(StringDocument(MutableASCIIString("ssdfsdfdsf")), r"abc");
