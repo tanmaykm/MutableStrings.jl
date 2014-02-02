@@ -56,39 +56,47 @@ function test_set_get()
     @assert ms[1:10] == "Xorem ipsu"
     ms[1:10] = 'X'
     @assert ms[1:10] == "X"^10
-#    ms[1:10] = "Lorem ipsu"
-#    @assert ms[1:10] == "Lorem ipsu"
-#
-#    replace!(ms, "Lorem", "O RUM")
-#    @assert ms[1:5] == "O RUM"
-#    replace!(ms, r"O RUM", "Lorem")
-#    @assert ms[1:10] == "Lorem ipsu"
-#
-#    s = replace(ms, "Lorem", "O RUM")
-#    @assert ms[1:5] != "O RUM"
-#    @assert beginswith(s, "O RUM")
-#end
+    ms[1:10] = "Lorem ipsu"
+    @assert ms[1:10] == "Lorem ipsu"
 
-#function test_time()
-#    master_str = makestr();
-#
-#    str = utf8(master_str);
-#    mstr = MutableUTF8String(str);
-#    @printf("%25s%30s%40s\n", "", "string", "mutable string")
-#    @printf("%25s%30s%40s\n", "length", "$(length(str))", "$(length(mstr))")
-#    @printf("%25s%20s%20s%20s%20s\n", "", "time", "bytes", "time", "bytes")
-#
-#    gc(); _ret, t, b = @timed str = lowercase(str);
-#    gc(); _mret, mt, mb = @timed lowercase!(mstr);
-#    @printf("%25s%20s%20s%20s%20s\n", "lowercase", "$t", "$b", "$mt", "$mb")
-#
-#    gc(); _ret, t, b = @timed str = reverse(str);
-#    gc(); _mret, mt, mb = @timed reverse!(mstr);
-#    @printf("%25s%20s%20s%20s%20s\n", "reverse", "$t", "$b", "$mt", "$mb")
-#
-#end
+    replace!(ms, "Lorem", "O RUM")
+    @assert ms[1:5] == "O RUM"
+    replace!(ms, r"O RUM", "Lorem")
+    @assert ms[1:10] == "Lorem ipsu"
+
+    s = replace(ms, "Lorem", "O RUM")
+    @assert ms[1:5] != "O RUM"
+    @assert beginswith(s, "O RUM")
+
+    replace!(ms, "adipisicing", "FEDCβΔ")
+    @assert start(search(ms, "adipisicing")) == 0
+    @assert start(search(ms, "FEDCβΔ")) > 0
+
+    replace!(ms, r"FEDCβΔ", "adipisicing")
+    @assert start(search(ms, "adipisicing")) > 0
+    @assert start(search(ms, "FEDCβΔ")) == 0
+end
+
+function test_time()
+    master_str = makestr();
+
+    str = utf8(master_str);
+    mstr = MutableUTF8String(str);
+    @printf("%25s%30s%40s\n", "", "string", "mutable string")
+    @printf("%25s%30s%40s\n", "length", "$(length(str))", "$(length(mstr))")
+    @printf("%25s%20s%20s%20s%20s\n", "", "time", "bytes", "time", "bytes")
+
+    gc(); _ret, t, b = @timed str = lowercase(str);
+    gc(); _mret, mt, mb = @timed lowercase!(mstr);
+    @printf("%25s%20s%20s%20s%20s\n", "lowercase", "$t", "$b", "$mt", "$mb")
+
+    gc(); _ret, t, b = @timed str = reverse(str);
+    gc(); _mret, mt, mb = @timed reverse!(mstr);
+    @printf("%25s%20s%20s%20s%20s\n", "reverse", "$t", "$b", "$mt", "$mb")
+
+end
 
 warmup()
-#test_set_get()
-#test_time()
+test_set_get()
+test_time()
 

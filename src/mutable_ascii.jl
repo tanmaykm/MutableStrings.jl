@@ -12,37 +12,6 @@ setindex!(s::MutableASCIIString, c::Char, I::Range1) = (s.data[I] = uint8(c))
 search(s::MutableASCIIString, c::Char, i::Integer) = c < 0x80 ? search(s.data,uint8(c),i) : 0
 rsearch(s::MutableASCIIString, c::Char, i::Integer) = c < 0x80 ? rsearch(s.data,uint8(c),i) : 0
 
-# won't be required if MutableASCIIString is made part of ByteString
-search(str::MutableASCIIString, re::Regex) = search(str, re, 1)
-function search(str::MutableASCIIString, re::Regex, idx::Integer)
-    if idx > nextind(str,endof(str))
-        throw(BoundsError())
-    end
-    opts = re.options & Base.PCRE.EXECUTE_MASK
-    Base.compile(re)
-    m, n = exec(re.regex, re.extra, str, idx-1, opts, true)
-    isempty(m) ? (0:-1) : ((m[1]+1):prevind(str,m[2]+1))
-end
-
-# won't be required if MutableASCIIString is made part of ByteString
-exec(regex::Ptr{Void}, extra::Ptr{Void}, str::MutableASCIIString, offset::Integer, options::Integer, cap::Bool) = exec(regex, extra, str, 0, offset, sizeof(str), options, cap)
-
-function exec(regex::Ptr{Void}, extra::Ptr{Void}, str::MutableASCIIString, shift::Integer, offset::Integer, len::Integer, options::Integer, cap::Bool)
-    if offset < 0 || len < offset || len+shift > sizeof(str)
-        error(BoundsError)
-    end
-    ncap = Base.PCRE.info(regex, extra, Base.PCRE.INFO_CAPTURECOUNT, Int32)
-    ovec = Array(Int32, 3(ncap+1))
-    n = ccall((:pcre_exec, :libpcre), Int32,
-              (Ptr{Void}, Ptr{Void}, Ptr{Uint8}, Int32, Int32, Int32, Ptr{Int32}, Int32),
-              regex, extra, pointer(str.data,shift+1), len, offset, options, ovec, length(ovec))
-    if n < -1
-        error("error $n")
-    end
-    cap ? ((n > -1 ? ovec[1:2(ncap+1)] : Array(Int32,0)), ncap) : n > -1
-end
-
-
 string(c::MutableASCIIString) = c
 function string(c::MutableASCIIString...)
     n = 0
@@ -93,11 +62,8 @@ end
 
 reverse!(s::MutableASCIIString) = reverse!(s.data)
 
-print(io::IO, s::MutableASCIIString) = (write(io, s);nothing)
-write(io::IO, s::MutableASCIIString) = write(io, s.data)
-
-function _splice!{T<:Integer}(a::Vector, r::Range1{T}, ins::AbstractArray=Base._default_splice)
-    m = length(ins)
+function _splice!{T<:Integer}(a::Vector, r::Range1{T}, ins::AbstractArray=Base._default_splice, m::Int=length(ins))
+    #m = length(ins)
     if m == 0
         deleteat!(a, r)
         return
@@ -128,8 +94,6 @@ function _splice!{T<:Integer}(a::Vector, r::Range1{T}, ins::AbstractArray=Base._
         a[f+k-1] = ins[k]
     end
 end
-
-replace!(s::MutableASCIIString, pat, r) = replace!(s, pat, r, 0)
 
 function replace!{T}(str::MutableASCIIString, pattern::T, repl::Union(Function,ASCIIString,Char), limit::Integer=0) 
     n = 1
@@ -207,8 +171,6 @@ function replace!(str::MutableASCIIString, re::Regex, repl::Union(Function,ASCII
     end
     nothing
 end
-
-matchall(re::Regex, str::MutableASCIIString, overlap::Bool=false) = matchall(re, convert(UTF8String, str), overlap)
 
 function map!(f, s::MutableASCIIString)
     d = s.data
