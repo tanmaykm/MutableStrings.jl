@@ -147,7 +147,6 @@ function lowercase!(s::MutableUTF8String)
     st = 1
     iob = IOBuffer()
     d = s.data
-    #us = utf8(s)
     while !done(s, st)
         c, ed = next(s, st)
         print(iob, lowercase(c))
@@ -235,5 +234,14 @@ function replace!(str::MutableUTF8String, re::Regex, repl::Union(Function,ByteSt
         n_repl += 1
     end
     nothing
+end
+
+function map!(f, s::MutableUTF8String)
+    st = 1
+    d = s.data
+    while !done(s, st)
+        s[st] = f(s[st])
+        st = st + 1 + utf8_trailing[d[st] + 1]
+    end
 end
 
