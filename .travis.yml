@@ -11,6 +11,6 @@ before_install:
 script:
   - julia -e 'Pkg.init(); run(`ln -s $(pwd()) $(Pkg.dir("MutableStrings"))`); Pkg.pin("MutableStrings"); Pkg.resolve()'
   - julia -e 'using MutableStrings; @assert isdefined(:MutableStrings); @assert typeof(MutableStrings) === Module'
-  - julia ~/.julia/MutableStrings/test/test_ascii.jl
-  - julia ~/.julia/MutableStrings/test/test_utf8.jl
+  - julia ./test/test_ascii.jl
+  - julia ./test/test_utf8.jl
 
