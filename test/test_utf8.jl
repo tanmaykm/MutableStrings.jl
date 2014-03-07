@@ -1,3 +1,4 @@
+module MutableStringTestUTF8
 using MutableStrings
 
 const nstr = 10^5
@@ -95,8 +96,9 @@ function test_time()
     @printf("%25s%20s%20s%20s%20s\n", "reverse", "$t", "$b", "$mt", "$mb")
 
 end
+end # module
 
-warmup()
-test_set_get()
-test_time()
+MutableStringTestUTF8.warmup()
+MutableStringTestUTF8.test_set_get()
+MutableStringTestUTF8.test_time()
 

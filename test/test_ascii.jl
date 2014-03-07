@@ -1,3 +1,4 @@
+module MutableStringTestAscii
 using MutableStrings
 
 const nstr = 10^5
@@ -153,8 +154,9 @@ function test_time()
     @assert length(mstr) == l1
     @printf("%25s%20s%20s%20s%20s\n", "repl regex char", "$t", "$b", "$mt", "$mb")
 end
+end # module MutableStringTestAscii
 
-warmup()
-test_set_get()
-test_time()
+MutableStringTestAscii.warmup()
+MutableStringTestAscii.test_set_get()
+MutableStringTestAscii.test_time()
 
