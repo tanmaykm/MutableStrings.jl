@@ -61,7 +61,7 @@ function getindex(s::MutableUTF8String, i::Int)
     char(c)
 end
 
-function getindex(s::MutableUTF8String, r::Range1{Int})
+function getindex(s::MutableUTF8String, r::UnitRange{Int})
     isempty(r) && return empty_utf8
     i, j = first(r), last(r)
     d = s.data
@@ -81,13 +81,13 @@ function setindex!(s::MutableUTF8String, x, i0::Real)
     endi = i0+utf8_trailing[d[i0]+1]
     setindex!(s, string(x), i0:endi)
 end
-function setindex!(s::MutableUTF8String, r::ByteString, I::Range1)
+function setindex!(s::MutableUTF8String, r::ByteString, I::UnitRange)
     st, ed = first(I), last(I)
     ed = nextind(s, ed)-1
     _splice!(s.data, I, r.data)
     r
 end
-function setindex!(s::MutableUTF8String, c::Char, I::Range1)
+function setindex!(s::MutableUTF8String, c::Char, I::UnitRange)
     st, ed = first(I), last(I)
     ed = nextind(s, ed)-1
     if isascii(c)
