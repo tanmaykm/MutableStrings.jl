@@ -1,5 +1,7 @@
 module MutableStrings
 
+using Compat
+
 import Base.convert, Base.promote_rule, Base.endof, Base.getindex, Base.setindex!, Base.sizeof, Base.search, Base.rsearch, Base.string, Base.print, Base.write, Base.map!, Base.reverse!, Base.matchall, Base.next, Base.length, Base.isvalid
 
 export MutableASCIIString, MutableUTF8String, MutableString, uppercase!, lowercase!, replace!, map!, ucfirst!, lcfirst!, reverse!, matchall, search, rsearch, getindex, setindex!
@@ -61,13 +63,13 @@ convert(::Type{MutableASCIIString}, s::ASCIIString)        = MutableASCIIString(
 convert(::Type{MutableASCIIString}, s::UTF8String)         = convert(MutableASCIIString, copy(s.data))
 convert(::Type{MutableASCIIString}, a::Array{Uint8,1})     = is_valid_ascii(a) ? MutableASCIIString(a) : error("invalid ASCII sequence")
 convert(::Type{MutableASCIIString}, s::MutableASCIIString) = s
-convert(::Type{MutableASCIIString}, s::String)             = convert(MutableASCIIString, bytestring(s))
+convert(::Type{MutableASCIIString}, s::AbstractString)     = convert(MutableASCIIString, bytestring(s))
 
 convert(::Type{UTF8String},         s::MutableUTF8String)  = UTF8String(s.data)
 convert(::Type{MutableUTF8String},  s::ByteString)         = MutableUTF8String(copy(s.data))
 convert(::Type{MutableUTF8String},  a::Array{Uint8,1})     = is_valid_utf8(a) ? MutableUTF8String(a) : error("invalid UTF8 sequence")
 convert(::Type{MutableUTF8String},  s::MutableUTF8String)  = s
-convert(::Type{MutableUTF8String},  s::String)             = convert(MutableUTF8String, bytestring(s))
+convert(::Type{MutableUTF8String},  s::AbstractString)     = convert(MutableUTF8String, bytestring(s))
 
 promote_rule(::Type{UTF8String},  ::Type{MutableUTF8String})  = UTF8String
 promote_rule(::Type{UTF8String},  ::Type{MutableASCIIString}) = UTF8String

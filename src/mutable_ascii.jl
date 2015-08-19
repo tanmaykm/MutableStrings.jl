@@ -2,12 +2,12 @@ endof(s::MutableASCIIString) = length(s.data)
 getindex(s::MutableASCIIString, i::Int) = (x=s.data[i]; x < 0x80 ? char(x) : '\ufffd')
 
 getindex(s::MutableASCIIString, r::Vector) = ASCIIString(getindex(s.data,r))
-getindex(s::MutableASCIIString, r::Range1{Int}) = ASCIIString(getindex(s.data,r))
+getindex(s::MutableASCIIString, r::UnitRange{Int}) = ASCIIString(getindex(s.data,r))
 getindex(s::MutableASCIIString, indx::AbstractVector{Int}) = ASCIIString(s.data[indx])
 
 setindex!(s::MutableASCIIString, x, i0::Real) = (s.data[i0] = x)
-setindex!(s::MutableASCIIString, r::ASCIIString, I::Range1) = (s.data[I] = r.data)
-setindex!(s::MutableASCIIString, c::Char, I::Range1) = (s.data[I] = uint8(c))
+setindex!(s::MutableASCIIString, r::ASCIIString, I::UnitRange) = (s.data[I] = r.data)
+setindex!(s::MutableASCIIString, c::Char, I::UnitRange) = (s.data[I] = uint8(c))
 
 search(s::MutableASCIIString, c::Char, i::Integer) = c < 0x80 ? search(s.data,uint8(c),i) : 0
 rsearch(s::MutableASCIIString, c::Char, i::Integer) = c < 0x80 ? rsearch(s.data,uint8(c),i) : 0
@@ -62,7 +62,7 @@ end
 
 reverse!(s::MutableASCIIString) = reverse!(s.data)
 
-function _splice!{T<:Integer}(a::Vector, r::Range1{T}, ins::AbstractArray=Base._default_splice, m::Int=length(ins))
+function _splice!{T<:Integer}(a::Vector, r::UnitRange{T}, ins::AbstractArray=Base._default_splice, m::Int=length(ins))
     #m = length(ins)
     if m == 0
         deleteat!(a, r)

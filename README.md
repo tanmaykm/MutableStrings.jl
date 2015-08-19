@@ -1,6 +1,6 @@
 # Mutable Strings
 
-[![Build Status](https://travis-ci.org/tanmaykm/MutableStrings.jl.png)](https://travis-ci.org/tanmaykm/MutableStrings.jl)
+Note: This package is now deprecated in favor of <https://github.com/quinnj/Strings.jl> (see <https://github.com/tanmaykm/MutableStrings.jl/issues/3>)
 
 Large scale text processing often requires several changes to be made on large string objects. Using immutable strings can result in significant inefficiencies in such cases. Using byte arrays directly prevents us from using the convenient string methods. This package provides Mutable ASCII and UTF8 string types that allow mutating the string data through the familiar string methods.
 
